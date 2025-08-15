@@ -17,12 +17,12 @@ namespace Worker
             try
             {
                 // Fetch configuration from environment variables
-                var dbHost = Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost";
+                var dbHost = Environment.GetEnvironmentVariable("DB_HOST") ?? "db";
                 var dbUsername = Environment.GetEnvironmentVariable("DB_USERNAME") ?? "postgres";
                 var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "postgres";
                 var dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? "postgres";
                 
-                var redisHost = Environment.GetEnvironmentVariable("REDIS_HOST") ?? "localhost";
+                var redisHost = Environment.GetEnvironmentVariable("REDIS_HOST") ?? "redis";
 
                 // Construct the connection strings
                 var pgConnectionString = $"Server={dbHost};Username={dbUsername};Password={dbPassword};Database={dbName}";
