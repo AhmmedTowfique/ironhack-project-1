@@ -1,0 +1,141 @@
+---
+# -------------------------------------------------------
+# Common dependencies (Git, Docker, Docker Compose)
+# -------------------------------------------------------
+- name: Deploy common dependencies
+  hosts: all
+  become: true
+  vars:
+    repo_url: "https://github.com/Pokfinner/ironhack-project-1.git"
+    app_path: "/home/ubuntu/ironhack-project-1"
+
+  tasks:
+    - name: Check if Docker is installed
+      command: docker --version
+      register: docker_installed
+      ignore_errors: true
+
+    - name: Install required packages if missing
+      apt:
+        name:
+          - git
+          - docker.io
+          - docker-compose
+        state: present
+        update_cache: yes
+      when: docker_installed.rc != 0
+
+    - name: Clone application repository
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ app_path }}"
+        version: main
+        force: yes
+
+# -------------------------------------------------------
+# Vote + Result frontend/backend
+# -------------------------------------------------------
+- name: Deploy vote + result services
+  hosts: vote_result
+  become: true
+  vars:
+    app_path: "/home/ubuntu/ironhack-project-1"
+    compose_file: "{{ app_path }}/docker-compose.yml"
+
+  tasks:
+    - name: Pull vote and result images only
+      command: docker compose -f {{ compose_file }} pull vote result
+      args:
+        chdir: "{{ app_path }}"
+
+    - name: Ensure no postgres container on vote_result host
+      docker_container:
+        name: ironhack-project-1-db-1
+        state: absent
+      ignore_errors: true
+
+    - name: Start vote and result containers only (no deps)
+      command: docker compose -f {{ compose_file }} up -d --no-deps vote result
+      args:
+        chdir: "{{ app_path }}"
+
+# -------------------------------------------------------
+# Redis + Worker
+# -------------------------------------------------------
+- name: Deploy redis + worker services
+  hosts: redis_worker
+  become: true
+  vars:
+    app_path: "/home/ubuntu/ironhack-project-1"
+    compose_file: "{{ app_path }}/docker-compose.yml"
+
+  tasks:
+    - name: Pull redis and worker images only
+      command: docker compose -f {{ compose_file }} pull redis worker
+      args:
+        chdir: "{{ app_path }}"
+
+    - name: Ensure no postgres container on redis_worker host
+      docker_container:
+        name: ironhack-project-1-db-1
+        state: absent
+      ignore_errors: true
+
+    - name: Start redis and worker containers only (no deps)
+      command: docker compose -f {{ compose_file }} up -d --no-deps redis worker
+      args:
+        chdir: "{{ app_path }}"
+
+# -------------------------------------------------------
+# Postgres deployment
+# -------------------------------------------------------
+- name: Deploy postgres service
+  hosts: postgres
+  become: true
+  vars:
+    app_path: "/home/ubuntu/ironhack-project-1"
+    compose_file: "{{ app_path }}/docker-compose.yml"
+    db_container_name: "ironhack-project-1-db-1"
+
+  tasks:
+    - name: Pull postgres image only
+      command: docker compose -f {{ compose_file }} pull db
+      args:
+        chdir: "{{ app_path }}"
+
+    - name: Start postgres container only (no deps)
+      command: docker compose -f {{ compose_file }} up -d --no-deps db
+      args:
+        chdir: "{{ app_path }}"
+
+    - name: Wait for Postgres container to be ready
+      shell: |
+        until docker exec {{ db_container_name }} pg_isready -U postgres; do
+          sleep 2
+        done
+      retries: 15
+      delay: 2
+      register: postgres_ready
+      until: postgres_ready.rc == 0
+
+    - name: Check if votes table exists
+      shell: >
+        docker exec -i {{ db_container_name }} psql -U postgres -tAc
+        "SELECT 1 FROM information_schema.tables WHERE table_name='votes';"
+      register: votes_table
+      changed_when: false
+
+    - name: Initialize votes table if missing
+      when: votes_table.stdout != "1"
+      copy:
+        dest: /tmp/init.sql
+        content: |
+          CREATE TABLE IF NOT EXISTS votes (
+              id SERIAL PRIMARY KEY,
+              voter_id VARCHAR(255) NOT NULL,
+              vote VARCHAR(255) NOT NULL
+          );
+
+    - name: Apply votes table initialization
+      when: votes_table.stdout != "1"
+      shell: docker exec -i {{ db_container_name }} psql -U postgres -f /tmp/init.sql
