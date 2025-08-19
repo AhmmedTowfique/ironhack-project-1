@@ -1,9 +1,48 @@
-# Terraform
+# --- Terraform ---
 *.tfstate
 *.tfstate.backup
 .terraform/
 
-# Optional: Python/Ansible cache or temporary files
-*.retry
+# --- Python ---
 *.pyc
+*.pyo
+*.pyd
 __pycache__/
+*.retry
+.env
+.venv/
+.env.local
+.DS_Store
+
+# --- Node.js ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.env.local
+dist/
+build/
+
+# --- .NET / C# ---
+bin/
+obj/
+*.exe
+*.dll
+*.pdb
+*.cache
+*.log
+*.vs/
+.vscode/
+
+# --- Docker ---
+*.pid
+*.log
+*.data
+docker-compose.override.yml
+
+# --- OS / Misc ---
+*.swp
+*.swo
+Thumbs.db
+.DS_Store
