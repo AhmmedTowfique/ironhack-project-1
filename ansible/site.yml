@@ -26,7 +26,7 @@
 #########################################
 # Instance C - PostgreSQL
 #########################################
-- hosts: instance-c
+- hosts: postgres
   become: true
   tasks:
     - name: Run PostgreSQL container
@@ -51,7 +51,7 @@
 #########################################
 # Instance B - Redis + Worker
 #########################################
-- hosts: instance-b
+- hosts: redis_worker
   become: true
   tasks:
     - name: Create Docker network
@@ -89,31 +89,31 @@
         state: started
         restart_policy: always
         env:
-          DB_HOST: "10.0.2.244"      # Instance C IP
+          DB_HOST: "10.0.4.209"      # Instance C IP
           DB_USERNAME: "postgres"
           DB_PASSWORD: "postgres"
           DB_NAME: "postgres"
-          REDIS_HOST: "10.0.2.24"    # Instance B IP
+          REDIS_HOST: "10.0.4.254"    # Instance B IP
           REDIS_PORT: "6379"
         networks:
           - name: ironhack-net
 
 #########################################
-# Instance A - Vote + Result
+# Instances A1 & A2 - Vote + Result
 #########################################
-- hosts: instance-a
+- hosts: vote_result
   become: true
   tasks:
     - name: Wait for PostgreSQL to be ready
       wait_for:
-        host: 10.0.2.244
+        host: 10.0.4.209   # Instance C IP
         port: 5432
         delay: 5
         timeout: 60
 
     - name: Wait for Redis to be ready
       wait_for:
-        host: 10.0.2.24
+        host: 10.0.4.254   # Instance B IP
         port: 6379
         delay: 5
         timeout: 30
@@ -121,25 +121,25 @@
     - name: Run Vote container
       docker_container:
         name: ironhack-project-1_vote_1
-        image: pokfinner/vote:latest
+        image: towfiqueahmmed/vote:latest
         state: started
         restart_policy: always
         ports:
           - "8080:80"
         env:
-          REDIS_HOST: "10.0.2.24"
+          REDIS_HOST: "10.0.4.254"
           REDIS_PORT: "6379"
 
     - name: Run Result container
       docker_container:
         name: ironhack-project-1_result_1
-        image: pokfinner/result:latest
+        image: towfiqueahmmed/result:latest
         state: started
         restart_policy: always
         ports:
           - "8081:80"
         env:
-          PG_HOST: "10.0.2.244"
+          PG_HOST: "10.0.4.209"
           PG_PORT: "5432"
           PG_USER: "postgres"
           PG_PASSWORD: "postgres"

@@ -44,19 +44,19 @@ resource "aws_security_group" "vote_result_sg" {
   # SSH from Bastion
   ingress {
     description     = "SSH from Bastion"
-    from_port        = 22
-    to_port          = 22
-    protocol         = "tcp"
-    security_groups  = [aws_security_group.bastion_sg.id]
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
+    security_groups = [aws_security_group.bastion_sg.id]
   }
 
   # App ports 8080-8081 from Bastion
   ingress {
     description     = "App ports from Bastion"
-    from_port        = 8080
-    to_port          = 8081
-    protocol         = "tcp"
-    security_groups  = [aws_security_group.bastion_sg.id]
+    from_port       = 8080
+    to_port         = 8081
+    protocol        = "tcp"
+    security_groups = [aws_security_group.bastion_sg.id]
   }
 
   egress {
@@ -88,7 +88,7 @@ resource "aws_security_group" "redis_worker_sg" {
 
   # SSH from Bastion
   ingress {
-    description    = "SSH from Bastion"
+    description     = "SSH from Bastion"
     from_port       = 22
     to_port         = 22
     protocol        = "tcp"
@@ -134,10 +134,10 @@ resource "aws_security_group" "postgres_sg" {
   # SSH from Bastion
   ingress {
     description     = "SSH from Bastion"
-    from_port        = 22
-    to_port          = 22
-    protocol         = "tcp"
-    security_groups  = [aws_security_group.bastion_sg.id]
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
+    security_groups = [aws_security_group.bastion_sg.id]
   }
 
   egress {
